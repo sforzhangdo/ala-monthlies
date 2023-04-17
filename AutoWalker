@@ -1,0 +1,181 @@
+import maya.cmds as cmds
+
+global hipCtrl
+global leftFootCtrl
+global rightFootCtrl
+global shoulderCtrl
+global leftHandCtrl
+global rightHandCtrl
+
+directions = ['+X', '+Y', '+Z', '-X', '-Y', '-Z']
+transforms = ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY', 'rotateZ']
+
+def walkWindow():
+    if cmds.window('walkWindow', exists=True):
+        cmds.deleteUI('walkWindow')
+    
+    mainWindow = cmds.window('walkWindow', title="Walk Generator")
+    mainLayout = cmds.scrollLayout()
+    colLayout = cmds.columnLayout()
+
+    handleFrame = cmds.frameLayout(p=colLayout, label='Handles', collapse=True)
+    
+    leftFootRow = cmds.rowColumnLayout(p=handleFrame, nc=5)
+    cmds.textFieldGrp('leftFootHandle', p=leftFootRow, l='Left Foot Handle', text='')
+    cmds.button('LeftFootHandleName', p=leftFootRow, label='<-', command=getSelectedLeftFoot)
+    cmds.text(p=leftFootRow, label='Forward')
+    cmds.optionMenu('dirFootLeft', p=leftFootRow)
+    for i in directions:
+        cmds.menuItem(label=i, parent='dirFootLeft')
+    cmds.optionMenu('upFootLeft', label='Upward')
+    for i in directions:
+        cmds.menuItem(label=i, parent='upFootLeft')
+    cmds.optionMenu('upFootLeft', e=True, sl=2)
+
+    rightFootRow = cmds.rowColumnLayout(p=handleFrame, nc=5)
+    cmds.textFieldGrp('rightFootHandle', p=rightFootRow, l='Right Foot Handle', text='')
+    cmds.button('RightFootHandleName', p=rightFootRow, label='<-', command=getSelectedRightFoot)
+    cmds.text(p=rightFootRow, label='Forward')
+    cmds.optionMenu('dirFootRight', p=rightFootRow)
+    for i in directions:
+        cmds.menuItem(label=i, parent='dirFootRight')
+    cmds.optionMenu('upFootRight', label='Upward')
+    for i in directions:
+        cmds.menuItem(label=i, parent='upFootRight')
+    cmds.optionMenu('upFootRight', e=True, sl=2)
+    
+    # leftHandRow = cmds.rowColumnLayout(p=handleFrame, nc=4)
+    # cmds.textFieldGrp('rightFootHandle', p=leftHandRow, l='Left Hand Handle', text='')
+    # cmds.button('LeftHandHandleName', p=leftHandRow, label='<-', command=getSelectedLeftHand)
+    # cmds.text(p=leftHandRow, label='Forward')
+    # cmds.optionMenu('dirHandLeft', p=leftHandRow)
+    # for i in directions:
+    #     cmds.menuItem(label=i, parent='dirHandLeft')
+    
+    # rightHandRow = cmds.rowColumnLayout(p=handleFrame, nc=4)
+    # cmds.textFieldGrp('rightFootHandle', p=rightHandRow, l='Right Hand Handle', text='')
+    # cmds.button('RightHandHandleName', p=rightHandRow, label='<-', command=getSelectedRightHand)
+    # cmds.text(p=rightHandRow, label='Forward')
+    # cmds.optionMenu('dirHandRight', p=rightHandRow)
+    # for i in directions:
+    #     cmds.menuItem(label=i, parent='dirHandRight')
+    
+    hipRow = cmds.rowColumnLayout(p=handleFrame, nc=5)
+    cmds.textFieldGrp('hipHandle', p=hipRow, l='Hip Handle', text='')
+    cmds.button('hipHandleName', p=hipRow, label='<-', command=getSelectedHip)
+    cmds.text(p=hipRow, label='Forward')
+    cmds.optionMenu('dirHip', p=hipRow)
+    for i in directions:
+        cmds.menuItem(label=i, parent='dirHip')
+    cmds.optionMenu('upHip', label='Upward')
+    for i in directions:
+        cmds.menuItem(label=i, parent='upHip')
+    cmds.optionMenu('upHip', e=True, sl=2)
+    
+    shoulderRow = cmds.rowColumnLayout(p=handleFrame, nc=5)
+    cmds.textFieldGrp('shoulderHandle', p=shoulderRow, l='Shoulders Handle', text='')
+    cmds.button('shoulderHandleName', p=shoulderRow, label='<-', command=getSelectedShoulders)
+    cmds.text(p=shoulderRow, label='Forward')
+    cmds.optionMenu('dirShoulder', p=shoulderRow)
+    for i in directions:
+        cmds.menuItem(label=i, parent='dirShoulder')
+    
+
+    walkParamsFrame = cmds.frameLayout(p=colLayout, label='Walk Parameters')
+    cmds.floatSliderGrp('walkDist', p=walkParamsFrame, field=True, label='Walk Distance')
+    cmds.floatSliderGrp('stepLength', p=walkParamsFrame, field=True, max=2.0, label='Step Length')
+    cmds.floatSliderGrp('stepHeight', p=walkParamsFrame, field=True, max=1.0, label='Step Height')
+    buttonLayout = cmds.rowColumnLayout(p=colLayout, nc=3, cs=[(1, 10), (2, 10), (3,10)])
+    cmds.button(label='Set Base Pose', p=buttonLayout, command=setBasePose)
+    cmds.button(label='Create Walk', p=buttonLayout, command=setKeyFrames)
+    cmds.button(label='Revert Walk', p=buttonLayout, command=revertToBase)
+
+    cmds.showWindow(mainWindow)
+
+def setBasePose(*args):
+    global hipCtrl
+    global leftFootCtrl
+    global rightFootCtrl
+    global shoulderCtrl
+
+    hipCtrl, leftFootCtrl, rightFootCtrl, shoulderCtrl = [], [], [], []
+    hipName = cmds.textFieldGrp('hipHandle', q=True, text=True)
+    leftFootName = cmds.textFieldGrp('leftFootHandle', q=True, text=True)
+    rightFootName = cmds.textFieldGrp('rightFootHandle', q=True, text=True)
+    shoulderName = cmds.textFieldGrp('shoulderHandle', q=True, text=True)
+
+    for i in transforms:
+        hipCtrl.append(cmds.getAttr(hipName+'.'+i))
+        leftFootCtrl.append(cmds.getAttr(leftFootName+'.'+i))
+        rightFootCtrl.append(cmds.getAttr(rightFootName+'.'+i))
+        shoulderCtrl.append(cmds.getAttr(shoulderName+'.'+i))
+
+def revertToBase(*args):
+    global hipCtrl
+    global leftFootCtrl
+    global rightFootCtrl
+    global shoulderCtrl
+
+    hipName = cmds.textFieldGrp('hipHandle', q=True, text=True)
+    leftFootName = cmds.textFieldGrp('leftFootHandle', q=True, text=True)
+    rightFootName = cmds.textFieldGrp('rightFootHandle', q=True, text=True)
+    shoulderName = cmds.textFieldGrp('shoulderHandle', q=True, text=True)
+
+    cmds.cutKey(hipName)
+    cmds.cutKey(leftFootName)
+    cmds.cutKey(rightFootName)
+    cmds.cutKey(shoulderName)
+
+    for i in range(len(transforms)):
+        cmds.setAttr(hipName+'.'+transforms[i], hipCtrl[i])
+        cmds.setAttr(shoulderName+'.'+transforms[i], shoulderCtrl[i])
+        cmds.setAttr(leftFootName+'.'+transforms[i], leftFootCtrl[i])
+        cmds.setAttr(rightFootName+'.'+transforms[i], rightFootCtrl[i])
+
+def setKeyFrames(*args):
+    stepLength = cmds.floatSliderGrp('stepLength', q=True, v=True)
+    hipLocVertical = cmds.objectCenter(getHipName(), y=True)
+    footLocVertical = cmds.objectCenter(getRightFootName(), y=True)
+    legLength = abs(hipLocVertical - footLocVertical)
+
+    forwardAttr = cmds.optionMenu('dirFootLeft', q=True, v=True)
+    print(forwardAttr)
+    cmds.setKeyframe(getLeftFootName(), at='translate'+forwardAttr[1], v=stepLength, time=0)
+    #print(legLength)
+
+def getSelectedLeftFoot(*args):
+    obj = cmds.ls(sl=True)[0]
+    cmds.textFieldGrp('leftFootHandle', e=True, text=obj)
+
+def getSelectedRightFoot(*args):
+    obj = cmds.ls(sl=True)[0]
+    cmds.textFieldGrp('rightFootHandle', e=True, text=obj)
+
+def getSelectedShoulders(*args):
+    obj = cmds.ls(sl=True)[0]
+    cmds.textFieldGrp('shoulderHandle', e=True, text=obj)
+
+def getSelectedHip(*args):
+    obj = cmds.ls(sl=True)[0]
+    cmds.textFieldGrp('hipHandle', e=True, text=obj)
+
+def getSelectedLeftHand():
+    return
+
+def getSelectedRightHand():
+    return
+
+def getHipName():
+    hipName = cmds.textFieldGrp('hipHandle', q=True, text=True)
+    return hipName
+def getLeftFootName():
+    leftFootName = cmds.textFieldGrp('leftFootHandle', q=True, text=True)
+    return leftFootName
+def getRightFootName():
+    rightFootName = cmds.textFieldGrp('rightFootHandle', q=True, text=True)
+    return rightFootName
+def getShoulderName():
+    shoulderName = cmds.textFieldGrp('shoulderHandle', q=True, text=True)
+    return shoulderName
+
+walkWindow()
